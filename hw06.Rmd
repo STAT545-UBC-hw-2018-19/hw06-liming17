@@ -1,0 +1,948 @@
+---
+title: "hw06_STAT545"
+output: html_document
+always_allow_html: yes
+author: "Liming Liu"
+date: '2018-11-01'
+---
+## overview
+
+In hw06 I choose to work with character data and work through and write up a lesson from the purrr tutorial. In part one, exercises in the Strings chapter will be contained. In part two, I will work with Trump Android Tweets and simplify data from a list of GitHub users.
+
+## Part 1 Excersices in Strings chapter
+
+First, load the library:
+```{r}
+library(tidyverse)
+library(stringr)
+```
+
+#### 14.2.5 Exercises
+
+1. In code that doesn’t use stringr, you’ll often see paste() and paste0(). What’s the difference between the two functions? What stringr function are they equivalent to? How do the functions differ in their handling of NA?
+
+ We can experiment with paste() and paste0() first:
+
+```{r}
+paste("I", "have", "an", "apple")
+```
+
+```{r}
+paste0("I", "have", "an", "apple")
+```
+
+```{r}
+x <- c("pen",NA)
+str_c("apple", x)
+paste("apple", x)
+```
+
+```{r}
+paste0("apple", x)
+```
+
+
+ *Answer:* In paste() the argument sep by default is ” ”, and in paste0() argument sep by “” . paste() is equivalent to str_c(..., sep=" "), paste0() is equivalent to str_c(..., sep="") in stringr. And unlike str_c, paste() and paste0() missing values are not contagious.
+
+2. In your own words, describe the difference between the sep and collapse arguments to str_c().
+
+```{r}
+str_c(c("apple", "pen"), c("banana", "book"), sep = "-")
+```
+
+```{r}
+str_c(c("apple", "pen"), c("banana", "book"), collapse = " ", sep = "-")
+```
+
+ *Answer:* So we can see that, argument sep modifies the separation between two combining words. And if collapse is non-null, it will combine all the input vector into a string and modifies separation between input vectors.
+
+3. Use str_length() and str_sub() to extract the middle character from a string. What will you do if the string has an even number of characters?
+
+Let's build a function called midChr to extract middle character from a string, if the string has an even number of characters, the funcition will return to character located at length/2
+
+```{r}
+midChr <- function(x){
+  if(!is.character(x)){
+    return("Please input a string!")
+  }
+  len <- str_length(x)
+  if(len%%2 == 1){
+    midchar <- str_sub(x, (len+1)/2, (len+1)/2)
+    str_c("The middle character is ->", midchar)
+  }else{
+    midchar <- str_sub(x, len/2,len/2)
+    str_c("The middle character is ->", midchar)
+  }
+    
+}
+```
+
+Experiment with the different inputs:
+
+```{r}
+char1 <- NULL
+char2 <- 2
+char3 <- "evenChar"
+char4 <- "oddChar"
+```
+
+```{r}
+midChr(char1)
+```
+
+```{r}
+midChr(char2)
+```
+
+```{r}
+midChr(char3)
+```
+
+```{r}
+midChr(char4)
+```
+So the function works fine :)
+
+4. What does str_wrap() do? When might you want to use it?
+
+ *Answer:* This function wrap strings into nicely formatted paragraphs. The target line width in characters can be defined in argument width, A width less than or equal to 1 will put each word on its own line. The indentation of first line in each paragraph can be defined in argument indent. The indentation of following lines in each paragraphcan be defined in argument exdent. It can be used when we want to display the a long string within some pre-specified column width.
+
+5. What does str_trim() do? What’s the opposite of str_trim()?
+
+ *Answer:* str_trim() can remove any number of whitespaces at the ends of a string. The argument side indicates the side on which the whitespace will be removed. For example, remove whitespace on the left side: 
+
+```{r}
+text <- " I have a pen. "
+str_trim(text, side = "left") # to remove whitespace on both side, use side = "both"
+```
+
+
+6. Write a function that turns (e.g.) a vector c("a", "b", "c") into the string a, b, and c. Think carefully about what it should do if given a vector of length 0, 1, or 2.
+
+ *Answer:* For empty string, return "", for vector c("a"), return "a"; for vector("a", "b") return "a and b"; for vector c("a", "b", "c") return "a, b, and c"
+
+```{r}
+combineString <- function(x){
+  if(!is.vector(x)){
+    return("Please input a vector")}
+  len <- length(x)
+  if(len == 0){
+    return("")
+  }else if(len == 1){
+    return(x[[1]])
+  }else if(len == 2){
+    return(str_c(x[[1]], "and", x[[2]], sep = " "))
+  }else{
+    text1 <- str_c(x[seq_len(len - 1)], sep = ", ")
+    text2 <- str_c("and", x[[len]], sep = " ")
+    text3 <- str_c(c(text1, text2), collapse = ", ")
+    return(text3)
+  }
+}
+```
+
+Experiment with different inputs:
+
+```{r}
+t0 <- ""
+t1 <- c("a")
+t2 <- c("a", "b")
+t3 <- c("a", "b", "c")
+```
+
+```{r}
+combineString(t0)
+```
+
+
+```{r}
+combineString(t1)
+```
+
+```{r}
+combineString(t2)
+```
+
+```{r}
+combineString(t3)
+```
+
+So the function works fine :)
+
+#### 14.3.1.1 Exercises
+
+1. Explain why each of these strings don’t match a \: "\", "\\", "\\\".
+
+*Answer:* "\" will escape the next character in the string. "\\" is the '\' in the regular expression, so it will escape the next character in the regular expression. In "\\\" the third backslach will escape the next character in regular expression.
+
+2. How would you match the sequence "'\?
+
+*Answer:* str_view("\"'\\", "\"'\\\\")
+
+3. What patterns will the regular expression \..\..\.. match? How would you represent it as a string?
+
+*Answer:* It will match the pattern that a dot followed by any character, repeated three times. For example:
+
+```{r}
+str_view(c(".a.b.c", "abc"), c("\\..\\..\\.."))
+```
+
+#### 14.3.2.1 Exercises
+
+1. How would you match the literal string "$^$"?
+
+```{r}
+str_view(c("$^$", "abc"), "^\\$\\^\\$$")
+```
+
+
+2. Given the corpus of common words in stringr::words, create regular expressions that find all words that:
+
+ 2.1 Start with “y”.
+ 
+```{r}
+ str_view(stringr::words, "^y", match =TRUE)
+```
+ 
+ 
+ 2.2 End with “x”
+ 
+```{r}
+str_view(stringr::words, "x$", match = TRUE)
+```
+ 
+ 
+ 2.3 Are exactly three letters long. (Don’t cheat by using str_length()!)
+ 
+```{r}
+str_view(stringr::words, "^.{3}$", match = TRUE)
+```
+ 
+ 
+ 2.4 Have seven letters or more.
+ 
+```{r}
+str_view(stringr::words, "^.{7}$", match = TRUE)
+```
+ 
+#### 14.3.3.1 Exercises
+
+1. Create regular expressions to find all words that:
+
+ 1.1 Start with a vowel.
+```{r}
+str_view(stringr::words, "^[aeiou]", match = TRUE)
+```
+ 
+ 1.2 That only contain consonants. (Hint: thinking about matching “not”-vowels.)
+```{r}
+    str_view(stringr::words, "^[^aeiou]", match=TRUE)
+```
+ 
+
+ 1.3 End with ed, but not with eed.
+```{r}
+ str_view(stringr::words, "[^e]ed$", match = TRUE)
+```
+ 
+ 1.4 End with ing or ise.
+```{r}
+str_view(stringr::words, "i(ng|se)$", match = TRUE)
+```
+ 
+
+2. Empirically verify the rule “i before e except after c”.
+
+The matching word will be -ie -cei and -cie -ei won't exist, to verify this rule, use:
+
+```{r}
+str_view(stringr::words, "(cei|[^c]ie)", match = TRUE)
+str_view(stringr::words, "(cie|[^c]ei)", match = TRUE)
+```
+
+
+3. Is “q” always followed by a “u”?
+Find the word that "q" isn't folowed by "u"
+```{r}
+str_view(stringr::words, "q[^u]", match = TRUE)
+```
+There is no matching word. So all the word in stringr::words, “q” is always followed by a “u”
+
+4. Write a regular expression that matches a word if it’s probably written in British English, not American English.
+
+ *Answer:* According to [spelling differences between American and British English] (https://en.wikipedia.org/wiki/American_and_British_English_spelling_differences). The word with -our -re -ise -yse are probabaly British English
+
+```{r}
+str_view(stringr::words, "our|ise|re|yse", match = TRUE)
+```
+
+
+
+5. Create a regular expression that will match telephone numbers as commonly written in your country.
+
+The phone number in Canada is like xxx-xxx-xxxx, so the regular expression is:
+```{r}
+
+str_view(c("123-123-1234", "123456"), "\\d{3}-\\d{3}-\\d{4}")
+```
+
+#### 14.3.4.1 Exercises
+
+1. Describe the equivalents of ?, +, * in {m,n} form.
+
+*Answer:* "?" -> {0,1}. "+" -> {1,}. "*" -> {0,}
+
+2. Describe in words what these regular expressions match: (read carefully to see if I’m using a regular expression or a string that defines a regular expression.)
+
+ 2.1 ^.*$
+ 
+ *Answer:* "^.*$" will match any string
+ 
+ 2.2 "\\{.+\\}"
+ 
+ *Answer:* "\\{.+\\}" will match words within curly braces. For example:
+```{r}
+str_view(c("{asd}", "asd", "{a}"), "\\{.+\\}")
+```
+ 
+ 
+ 2.3 \d{4}-\d{2}-\d{2}
+ 
+ *Answer:* \d{4}-\d{2}-\d{2} will match numbers in format xxxx-xx-xx
+ 
+ 2.4 "\\\\{4}"
+ 
+ *Answer:* "\\\\{4}" will match four backslashes.
+ 
+3. Create regular expressions to find all words that:
+
+ 3.1 Start with three consonants.
+```{r}
+str_view(stringr::words, "^[^aeiou]{3}", match = TRUE)
+```
+ 
+ 3.2 Have three or more vowels in a row.
+```{r}
+str_view(stringr::words, "[aeiou]{3,}", match = TRUE)
+```
+ 
+ 3.3 Have two or more vowel-consonant pairs in a row.
+```{r}
+str_view(stringr::words, "([aeiou][^aeiou]){2,}", match = TRUE) 
+```
+ 
+4. Solve the beginner regexp crosswords at https://regexcrossword.com/challenges/beginner.
+
+The crossword is solved at the website:)
+
+#### 14.3.5.1 Exercises
+
+1. Describe, in words, what these expressions will match:
+
+ 1.1 (.)\1\1 -> match the word with 3 same characters like "hhh"
+ 
+ 1.2 "(.)(.)\\2\\1" -> match word with 2 characters followed by the same 2 characters in reverse order like "abba"
+ 
+ 1.3 (..)\1 -> match word with 2 characters followed by the same 2 characters like "abab"
+ 
+ 1.4 "(.).\\1.\\1" -> match word with a character followed by any character, the original first character, any other character, the original character again like "abcada"
+ 
+ 1.5 "(.)(.)(.).*\\3\\2\\1" ->  match word with 3 characters followed by zero or more any characters,the same first three characters but in reverse order like "abcdfgcba"
+ 
+2. Construct regular expressions to match words that:
+
+ 2.1 Start and end with the same character.
+```{r}
+str_view(stringr::words, "^(.).*\\1$", match = TRUE)
+```
+ 
+ 2.2 Contain a repeated pair of letters (e.g. “church” contains “ch” repeated twice.)
+```{r}
+str_view(stringr::words, "(..).*\\1", match = TRUE) 
+```
+ 
+ 2.3 Contain one letter repeated in at least three places (e.g. “eleven” contains three “e”s.)
+```{r}
+str_view(stringr::words, "([a-z]).*\\1.*\\1", match = TRUE) 
+```
+ 
+#### 14.4.2 Exercises
+
+1. For each of the following challenges, try solving it by using both a single regular expression, and a combination of multiple str_detect() calls.
+
+ 1.1 Find all words that start or end with x.
+```{r}
+str_view(stringr::words, "^x|x$", match = TRUE) 
+stringr::words[str_detect(stringr::words, "^x")|str_detect(stringr::words,"x$")] %>% 
+  head()
+```
+ 
+
+ 1.2 Find all words that start with a vowel and end with a consonant.
+```{r}
+str_view(stringr::words, "^[aeiuo].*[^aeiuo]$", match = TRUE)
+stringr::words[str_detect(stringr::words,"^[aeiuo]" ) & str_detect(stringr::words,"[^aeiuo]$" )] %>% 
+  head()
+```
+ 
+
+ 1.3 Are there any words that contain at least one of each different vowel?
+```{r}
+stringr::words[str_detect(stringr::words, "a") & str_detect(stringr::words, "e") & str_detect(stringr::words, "i") &
+  str_detect(stringr::words, "o") & str_detect(stringr::words, "u")]
+```
+ So there is no word that contain at least one of each different vowel
+
+2. What word has the highest number of vowels? What word has the highest proportion of vowels? (Hint: what is the denominator?) 
+```{r}
+vowels <- str_count(words, "[aeiou]")
+words[which.max(vowels)] #the highest number of vowels
+```
+```{r}
+words[which.max(vowels / str_length(words))]
+```
+
+#### 14.4.3.1 Exercises
+
+1. In the previous example, you might have noticed that the regular expression matched “flickered”, which is not a colour. Modify the regex to fix the problem.
+
+We need to add a boundary, so the matching word is the color name:
+```{r}
+colors <- c(
+  "red", "orange", "yellow", "green", "blue", "purple"
+)
+color_match <- str_c(str_c("\\b", colors, "\\b"), collapse = "|")
+sentences[str_count(sentences, color_match) > 1]
+
+```
+
+
+2. From the Harvard sentences data, extract:
+
+ 2.1 The first word from each sentence.
+```{r}
+str_extract(sentences, "^[a-zA-Z]+") %>% head(3)
+```
+ 
+ 2.2 All words ending in ing.
+```{r}
+sentences[str_detect(sentences, "\\b[a-zA-Z]+ing\\b") ] %>% 
+  str_extract("\\b[a-zA-Z]+ing\\b")
+```
+ 
+ 2.3 All plurals.
+ 
+ THe words end with "s" and more than 3 characters are probably plurals
+```{r}
+sentences[str_detect(sentences, "\\b[A-Za-z]{3,}s\\b")] %>% 
+  str_extract("\\b[A-Za-z]{3,}s\\b") %>% head()
+```
+ 
+ 
+#### 14.4.4.1 Exercises
+
+1. Find all words that come after a “number” like “one”, “two”, “three” etc. Pull out both the number and the word.
+```{r}
+nums <- "(one|two|three|four|five|six|seven|eight|nine|ten) ([^ ]+)"
+num_sentense <- sentences[str_detect(sentences, nums)]
+num_word <- str_extract_all(num_sentense, nums)
+num_word %>% head()
+```
+
+
+2. Find all contractions. Separate out the pieces before and after the apostrophe.
+```{r}
+contraction <- "([A-Za-z]+)'([A-Za-z]+)"
+sentences[str_detect(sentences, contraction)] %>% 
+  str_extract(contraction)
+```
+
+
+#### 14.4.5.1 Exercises
+
+1. Replace all forward slashes in a string with backslashes.
+```{r}
+text1 <- str_replace_all("pen/apple/pie", "\\/", "\\\\")
+writeLines(text1)
+```
+
+
+2. Implement a simple version of str_to_lower() using replace_all().
+```{r}
+lower_case <- letters 
+names(lower_case) <- LETTERS
+str_replace_all("I Have An APPLE", lower_case)
+```
+
+
+3. Switch the first and last letters in words. Which of those strings are still words?
+```{r}
+ str_replace_all(words, "^([A-Za-z])(.*)([a-z])$", "\\3\\2\\1") %>% 
+  intersect(words) # use intersect to see which word is still word
+```
+
+
+#### 14.4.6.1 Exercises
+
+1. Split up a string like "apples, pears, and bananas" into individual components.
+```{r}
+x <- c("apples, pears, and bananas")
+str_split(x, ", +(and +)?")
+```
+
+
+2. Why is it better to split up by boundary("word") than " "?
+
+*Answer:* When using " ", the punctuation will also remain, when using boundary("word"), only word will remain
+
+3. What does splitting with an empty string ("") do? Experiment, and then read the documentation.
+
+```{r}
+str_split("a b cdf.g, rd", "")
+```
+
+So it split the string into individual characters
+
+#### 14.5.1 Exercises
+
+1. How would you find all strings containing \ with regex() vs. with fixed()?
+
+```{r}
+str_subset(c("a\\b", "ab"), regex("\\\\")) # with regex()
+str_subset(c("a\\b", "ab"), fixed("\\")) # with fix()
+```
+
+
+2. What are the five most common words in sentences?
+```{r}
+unlist(str_split(sentences, boundary("word"))) %>%
+  str_to_lower() %>%
+  tibble() %>%
+  set_names("words") %>%
+  count(words) %>%
+  arrange(desc(n)) %>%
+  head()
+```
+
+ *Answer:* So the most common five words are: "the" "a" "of" "to" "and"
+
+#### 14.7.1 Exercises
+
+1.Find the stringi functions that:
+
+ 1.1 Count the number of words.
+```{r}
+library(stringi)
+stri_count_words("I have a pen")
+```
+ 
+ 1.2 Find duplicated strings.
+```{r}
+stri_duplicated("I have a big apple")
+```
+ 
+ 1.3 Generate random text.
+```{r}
+stri_rand_lipsum(1) #generates lorem ipsum text
+stri_rand_strings(3,length = 4) #generates random strings
+stri_rand_shuffle(str = "I have a pen") #randomly shuffles the code points (characters) in the text.
+```
+ 
+2. How do you control the language that stri_sort() uses for sorting?
+*Answer:* Set argument locale in stri_sort().
+
+## part 2 Work with a list
+
+#### 2.1 Trump Android Tweets
+
+First load the packages and trump_tweets_df
+```{r}
+library(purrr)
+library(tibble)
+library(dplyr)
+library(repurrrsive)
+library(tidyverse)
+load(url("http://varianceexplained.org/files/trump_tweets_df.rda"))
+glimpse(trump_tweets_df)
+```
+
+So the tweets are stored in column "text", extract the text from data frame to "tweets" and take a look at the "tweets":
+```{r}
+tweets <- trump_tweets_df$text
+tweets %>% head() %>% strtrim(70)
+```
+
+Smush Trump Android words into "regex", we use these words for later practice. And then choose several rows of tweets for simplifying the data frame:
+```{r}
+regex <- "badly|crazy|weak|spent|strong|dumb|joke|guns|funny|dead"
+tweets <- tweets[c(1, 2, 5, 6, 198, 347, 919)] #choose 7 rows
+tweets %>% strtrim(70)
+```
+ 
+Locate all the Trump Android words inside the tweet using gregexpr():
+
+```{r}
+matches <- gregexpr(regex, tweets)
+str(matches)
+```
+
+So in the list "match", each element coresponding to the element in "tweets". For each element in "match", it has an integer vector which "-1" indicates no matches found. Otherwise, it holds the position(s) of the first character of each match. For element attribute "match.length", it’s -1 if no matches found. Otherwise it holds the length(s) of each match.
+
+Then get the length of each matched words and store into match_length. In order to get the value of match.length, using attr() with map():
+```{r}
+ml <- function(x){
+  attr(x, which = "match.length")
+}
+match_length <- map(matches, ml)
+```
+
+Or using anonymous function:
+```{r}
+match_length <- map(matches, ~ attr(.x, which = "match.length"))
+```
+
+Or using pre-existing function
+```{r}
+match_length <- map(matches, attr, which = "match.length")
+```
+
+Then, let's build function to count the number of matching words in each tweets:
+```{r}
+count_words <- function(x) sum(x>0) # so look at the total number of value that greater than 0 in each element can tell us the total matching words, when there is no matching words, match[i] = -1, and the outcome is 0
+```
+
+Using map_int() to return a vector that stores the matching word in each tweet:
+```{r}
+matching_word <- map_int(matches, count_words)
+matching_word
+```
+
+Now remove the attributes in matches with as.vector(), and store in match_first:
+```{r}
+match_first <- map(matches, as.vector)
+```
+
+Now use the R objects as well as the substring() and pmap() to extract Trump words from single tweet.
+```{r}
+# in order to extract word, we also need to know the ending position of the word
+matches_last <-  map2(match_length, matches, ~ .x + .y - 1)
+# since we need 3 variables in substring(), we need to use pmap(), and combine tweets, matches_last, matches into a list
+pmap(list(text = tweets, first = matches, last = matches_last),substring)
+```
+
+Or we can store the variables in a dataframe, so it can be safier and tidier
+```{r}
+mdf <- tibble(
+  text = tweets,
+  first = match_first,
+  last = matches_last
+)
+pmap(mdf, substring)
+```
+
+At lastm let's use pipe to take it all from the top:
+```{r}
+tibble(text = tweets, first = gregexpr(regex, tweets)) %>% 
+  mutate(match_length = map(first, ~ attr(.x, which = "match.length")), last = map2(first, match_length, ~ .x + .y - 1)) %>% 
+  select(-match_length) %>% 
+  pmap(substring)
+```
+
+#### 2.2 Simplifying data from a list of GitHub users
+
+First, load the packages:
+```{r}
+library(listviewer)
+library(jsonlite)
+```
+
+The repurrrsive package provides an R list named gh_users, it has information on 6 GitHub users, let's first look at the list:
+```{r}
+#str(gh_users)
+```
+
+##### Exercise
+
+1. Now Read the documentation on str(). What does max.level control? Do str(gh_users, max.level = i) for i in 0,1, and 2.
+
+So as the document says, maximal level of nesting which is applied for displaying nested structures, e.g., a list containing sub lists. Default NA: Display all nesting levels.
+```{r}
+str(gh_users, max.level = 0) # So it shows 0 sub list
+```
+
+```{r}
+str(gh_users, max.level = 1) # So it shows 1 sub list
+```
+```{r}
+str(gh_users, max.level = 2) # So it shows 2 sub list
+```
+
+2. What does the list.len argument of str() control? What is it’s default value? Call str() on gh_users and then on a single component of gh_users with list.len set to a value much smaller than the default.
+
+list.len controls the maximum number of list elements to display within a level. In default, it shows all the elements, let's set list.len = 1:
+```{r}
+str(gh_users, list.len = 1)
+```
+
+3. Call str() on gh_users, specifying both max.level and list.len.
+```{r}
+str(gh_users, max.level = 1, list.len = 2)
+```
+
+4. Inspect elements 1, 2, 6, 18, 21, and 24 of the list component for the 5th GitHub user. One of these should be the URL for the user’s profile on GitHub.com. Go there and compare info you see there with the info you just extracted from gh_users.
+```{r}
+gh_users[[5]][c(1,2,6,18,21,24)]
+```
+```{r}
+str(gh_users[[5]])# compare the info
+```
+
+5. Consider the interactive view of gh_users here. Or, optionally, install the listviewer package via  install.packages("listviewer") and call jsonedit(gh_users) to run this widget locally. Can you find the same info you extracted in the previous exercise? The same info you see in user’s GitHub.com profile?
+```{r}
+jsonedit(gh_users)
+```
+
+
+Now, let's use purrr::map() to extract the element with name “login”:
+```{r}
+map(gh_users, "login")
+```
+
+Use purrr::map() to extract an element on 18th position.
+```{r}
+map(gh_users, 18)
+```
+
+##### exercise
+
+1. Use names() to inspect the names of the list elements associated with a single user. What is the index or position of the created_at element? Use the character and position shortcuts to extract the created_at elements for all 6 users.
+```{r}
+(name_col <- names(gh_users[[1]]))
+```
+```{r}
+map(gh_users, "created_at" )
+```
+```{r}
+match("created_at",name_col)# find the position of "created_at"
+map(gh_users, 29)
+```
+
+
+2. What happens if you use the character shortcut with a string that does not appear in the lists’ names?
+```{r}
+map(gh_users, "created" )
+```
+So the outcome will be NULL
+
+3. What happens if you use the position shortcut with a number greater than the length of the lists?
+```{r}
+map(gh_users, 45 )
+```
+So the outcome will be NULL
+
+4. What if these shortcuts did not exist? Write a function that takes a list and a string as input and returns the list element that bears the name in the string. Apply this to gh_users via map(). Do you get the same result as with the shortcut? Reflect on code length and readability.
+```{r}
+find_name <- function(x,y){
+ if(!is.na(match(y,names(x)))){
+   return(x[y])
+ }else{
+   return("The element doesn't exist!")
+ }
+}
+```
+ Now test the function:
+```{r}
+map2(gh_users,"created_at", find_name)
+#map2(gh_users,"created", find_name)
+```
+ It works fine:)
+
+5. Write another function that takes a list and an integer as input and returns the list element at that position. Apply this to gh_users via map(). How does this result and process compare with the shortcut?
+```{r}
+find_num <- function(x, y){
+  if(y <= length(x) && y >= 0){
+    return(x[y])
+  }else{
+    return("This num is illegal")
+  }
+}
+```
+Test the function
+```{r}
+map2(gh_users,29, find_num)
+#map2(gh_users,49, find_num)
+```
+it works fine:)
+
+Now try change the map() output to a vector:
+```{r}
+map_chr(gh_users, "login")
+map_chr(gh_users, 18)
+```
+
+##### exercise
+
+1. For each user, the second element is named “id”. This is the user’s GitHub id number, where it seems like the person with an id of, say, 10 was the 10th person to sign up for GitHub. At least, it’s something like that! Use a type-specific form of map() and an extraction shortcut to extract the ids of these 6 users.
+```{r}
+map_int(gh_users, 2)
+```
+
+
+2. Use your list inspection strategies to find the list element that is logical. There is one! Use a type-specific form of  map() and an extraction shortcut to extract this for all 6 users.
+```{r}
+summary(gh_users[[1]])
+```
+
+So site_admin is the logical.Now extract the element:
+```{r}
+map(gh_users,"site_admin")
+```
+
+3. Use your list inspection strategies to find elements other than id that are numbers. Practice extracting them.
+
+From the previous results, we can see that the numeric elements are:public_repos, public_gists, followers, following. Now extracting them:
+```{r}
+map(gh_users, "public_repos")
+map(gh_users, "public_gists")
+map(gh_users, "followers")
+map(gh_users, "following")
+```
+
+Now use map() and '[' to extract mutiple elements:
+```{r}
+x <- map(gh_users, `[`, c("login", "name", "id", "location"))
+str(x[1:2]) # inspect the result for the first 2 users
+```
+
+Or using magrittr::extract in map() instead of '[':
+```{r}
+x <- map(gh_users, magrittr::extract, c("login", "name", "id", "location"))
+str(x[3:4]) # inspect the result for the last 2 users
+```
+
+##### Exercise
+
+1. Use your list inspection skills to determine the position of the elements named “login”, “name”, “id”, and “location”. Map  [ or magrittr::extract() over users, requesting these four elements by position instead of name.
+
+```{r}
+position <- match(c("login", "name", "id", "location"), names(gh_users[[1]]))
+map(gh_users, `[`, position)
+```
+
+
+Now use map_df() to “stack up” these results row-wise:
+```{r}
+map_df(gh_users, `[`, c("login", "name", "id", "location"))
+```
+
+##### Exercise
+
+1. Use map_df() to create a data frame with one row per user and variables for “name”, “following”, and “created_at”. What type are the variables?
+```{r}
+map_df(gh_users, `[`, c("name", "following", "created_at"))
+```
+So  “name” element is character, “following” element is int,  “created_at” is character
+
+Now, experiment with another dataframe gh_repos:
+```{r}
+jsonedit(gh_repos)
+```
+
+##### Exercises
+
+Use str(), [, and [[ to explore this list, possibly in addition to the interactive list viewer.
+
+1. How many elements does gh_repos have? How many elements does each of those elements have?
+```{r}
+str(gh_repos, list.len = 1)
+```
+So gh_repos has 6 elements, each element has 30 elements, then each of the 30 elements has 68 elements
+
+2. Extract a list with all the info for one repo for one user. Use str() on it. Maybe print the whole thing to screen. How many elements does this list have and what are their names? Do the same for at least one other repo from a different user and get an rough sense for whether these repo-specific lists tend to look similar.
+```{r}
+str(gh_repos[[1]][1])
+```
+
+
+3. What are three pieces of repo information that strike you as the most useful? I.e. if you were going to make a data frame of repositories, what might the variables be?
+
+It would be "id" "full_name" and "repos_url"
+
+
+Now we use the indexing shortcuts in a more complicated setting. Instead of providing a single name or position, we use a vector: the j-th element addresses the j-th level of the hierarchy. We get the full name (element 3) of the first repository listed for each user:
+```{r}
+gh_repos %>%
+  map_chr(c(1, 3)) #  It extracts the first repo for each user and, within that, the 3rd piece of information for the repo.
+```
+
+##### Exercises
+
+1. Each repository carries information about its owner in a list. Use map_chr() and the position indexing shortcut with vector input to get an atomic character vector of the 6 GitHub usernames for our 6 users: “gaborcsardi”, “jennybc”, etc. You will need to use your list inspection skills to figure out where this info lives.
+
+In the previous result, we can see username is in the first element of owner:
+```{r}
+map_chr(gh_repos, c(1,4,1))
+```
+So it extracts the usernames of 6 users.
+
+Now, let's get a data frame with one row per repository, with variables identifying which GitHub user owns it, the repository name, etc.
+
+First, Put the gh_repos list into a data frame, along with identifying GitHub usernames:
+
+Hint: use previous results to get usernames and  use tibble::enframe() to convert this named vector into a tibble with the names as one variable and the vector as the other. 
+```{r}
+(unames <- map_chr(gh_repos, c(1, 4, 1)))
+(udf <- gh_repos %>%
+    set_names(unames) %>% 
+    enframe("username", "gh_repos"))
+```
+
+Now, using map() inside mutate() to add a column called n_repo to indicate the number of repo of user
+```{r}
+udf %>% 
+  mutate(n_repos = map_int(gh_repos, length))
+```
+
+```{r}
+# in udf the repos of one user is
+one_user <- udf$gh_repos[[1]]
+# the first repo of a user is
+one_repo <- one_user[[1]]
+# now make a data frame of that info for all a user's repos
+map_df(one_user, `[`, c("name", "fork", "open_issues"))
+```
+
+Now let's scale this up to all of our users
+```{r}
+udf %>% 
+  mutate(repo_info = gh_repos %>%
+           map(. %>% map_df(`[`, c("name", "fork", "open_issues"))))
+```
+
+ Remove the gh_repos variable, which has served its purpose and use  tidyr::unnest() to simplify this to a normal data frame that is free of list-columns:
+```{r}
+(rdf <- udf %>% 
+   mutate(
+     repo_info = gh_repos %>%
+       map(. %>% map_df(`[`, c("name", "fork", "open_issues")))
+   ) %>% 
+   select(-gh_repos) %>% 
+   tidyr::unnest())
+```
+ 
+We can change the tibble into a structure of showing the 3 repos for each user that have the most open issues and get rid of fork:
+```{r}
+rdf %>% 
+  filter(!fork) %>% 
+  select(-fork) %>% 
+  group_by(username) %>%
+  arrange(username, desc(open_issues)) %>%
+  slice(1:3)
+```
+ 
+
+The end of HW06 :)
+
+
+
+
